@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ error_code if error_code else 403 }} — Request Blocked{% endblock %}
+
+{% block content %}
+<div class="error-page">
+  <div class="error-code">{{ error_code if error_code else 403 }}</div>
+  <div class="error-msg">{{ error_msg if error_msg else "Request blocked." }}</div>
+  {% if error_code == 403 %}
+  <p class="error-detail">
+    The CSRF token submitted with this request was missing or did not match the
+    token bound to your session.  This usually means the request originated from
+    a different site or the form was tampered with.  Your account has not been
+    modified.
+  </p>
+  {% endif %}
+  <a href="{{ url_for('dashboard') if current_user else url_for('login') }}" class="btn btn-primary" id="btn-back-home">
+    Back to {{ "Dashboard" if current_user else "Login" }}
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Course Search{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Course Catalog</h1>
+  <p>Search all courses offered this semester.</p>
+</div>
+
+<!-- Search bar -->
+<!-- FIX 1c: term is rendered with Jinja autoescape (no |safe) — reflected XSS blocked -->
+<form class="search-bar" method="GET" action="{{ url_for('search') }}" id="search-form" role="search">
+  <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+  <input
+    type="search"
+    id="search-input"
+    name="q"
+    value="{{ term }}"
+    placeholder="Search by course title or code..."
+    aria-label="Search courses"
+    autocomplete="off"
+  >
+  <button type="submit" class="btn btn-primary btn-sm" id="btn-search">Search</button>
+</form>
+
+{% if term %}
+  <!-- FIX 1c: term auto-escaped by Jinja — HTML tags rendered as text, not executed -->
+  <p class="text-muted mb-2">
+    Results for: <strong>{{ term }}</strong>
+  </p>
+{% endif %}
+
+{% if courses %}
+<div class="courses-grid" id="courses-grid">
+  {% for c in courses %}
+  <div class="course-card">
+    <span class="course-code-badge">{{ c['code'] }}</span>
+    <div class="course-title">{{ c['title'] }}</div>
+    <div class="course-instructor">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.25rem;" aria-hidden="true">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      {{ c['instructor'] }}
+    </div>
+    <div style="margin-top:.65rem;font-size:.8rem;color:var(--muted);">{{ c['credits'] }} credits</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% elif term %}
+<div class="search-empty" id="search-empty">
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5" aria-hidden="true" style="margin:0 auto .75rem;">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+  <p>No courses matched your search.</p>
+</div>
+
+{% else %}
+<div class="search-empty" id="browse-prompt">
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5" aria-hidden="true" style="margin:0 auto .75rem;">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+  </svg>
+  <p>Enter a course code or keyword to search the catalog.</p>
+</div>
+{% endif %}
+
+{% endblock %}
