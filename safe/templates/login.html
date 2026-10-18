@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — Campus Portal</title>
+  <meta name="description" content="Sign in to the Campus University Student Portal.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="login-page">
+
+  <!-- Version badge above card -->
+  <span class="version-badge-login">{{ version }}</span>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <!-- Pure-CSS shield rendered as SVG inline glyph -->
+      <div class="logo-shield" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7l-9-5z"/>
+        </svg>
+      </div>
+      <h1>Campus Portal</h1>
+      <p>Sign in to continue</p>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error" role="alert">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('login') }}" id="login-form" novalidate>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          autocomplete="username"
+          placeholder="e.g. alice"
+          required
+          autofocus
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          autocomplete="current-password"
+          placeholder="Password"
+          required
+        >
+      </div>
+
+      <!-- FIX 0g: CSRF token present even on login to set session token early -->
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <button type="submit" class="btn btn-primary btn-full mt-2" id="btn-signin">
+        Sign In
+      </button>
+    </form>
+  </div>
+
+  <p class="login-footer">&copy; Campus University &mdash; Student Portal</p>
+</div>
+
+</body>
+</html>
