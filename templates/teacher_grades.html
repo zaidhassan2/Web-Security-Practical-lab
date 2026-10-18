@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Manage Grades{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Manage Student Grades</h1>
+  <p>Update grades for students enrolled in your courses.</p>
+</div>
+
+{% if success %}
+<div class="alert alert-success" role="alert">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+  {{ success }}
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-error" role="alert">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  {{ error }}
+</div>
+{% endif %}
+
+<!-- VULN 0c: No CSRF token — grade changes can be forged cross-origin -->
+<!-- VULN: No verification that course belongs to this teacher (broken access control) -->
+<div class="alert alert-info" role="note" style="margin-bottom:1.5rem;">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+  Click a row to update the grade. No CSRF token is used — this form is vulnerable to CSRF attacks.
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+    Grade Book
+  </div>
+
+  <table class="data-table" id="grades-table">
+    <thead>
+      <tr>
+        <th>Student</th>
+        <th>Course</th>
+        <th>Current Grade</th>
+        <th>Update Grade</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in enrolled_students %}
+      <tr>
+        <td>
+          <a href="{{ url_for('profile', uid=s['user_id']) }}">{{ s['username'] }}</a>
+        </td>
+        <td><span class="course-code-badge-sm">{{ s['code'] }}</span> {{ s['title'] }}</td>
+        <td><span class="grade-badge">{{ s['grade'] }}</span></td>
+        <td>
+          <!-- VULN 0c: No CSRF token in this form -->
+          <form method="POST" action="{{ url_for('teacher_grades') }}"
+                style="display:flex;gap:.5rem;align-items:center;"
+                id="grade-form-{{ s['user_id'] }}-{{ s['course_id'] }}">
+            <input type="hidden" name="user_id"   value="{{ s['user_id'] }}">
+            <input type="hidden" name="course_id" value="{{ s['course_id'] }}">
+            <select name="grade" style="width:90px;" id="grade-select-{{ s['user_id'] }}-{{ s['course_id'] }}">
+              {% for g in ['A+','A','A-','B+','B','B-','C+','C','C-','D','F','N/A'] %}
+              <option value="{{ g }}" {% if g == s['grade'] %}selected{% endif %}>{{ g }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm"
+                    id="btn-save-{{ s['user_id'] }}-{{ s['course_id'] }}">Save</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

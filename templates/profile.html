@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+
+{% if db_error %}
+<div class="alert alert-error" role="alert">
+  <!-- VULN 2c: raw DB error from the UNION injection attempt is shown -->
+  Database error: {{ db_error }}
+</div>
+{% endif %}
+
+{% if profile_user %}
+<div class="profile-layout">
+
+  <!-- Left: avatar card -->
+  <div class="profile-card">
+    <div class="profile-avatar" aria-label="Avatar for {{ profile_user['username'] }}">
+      {{ profile_user['username'][0] }}
+    </div>
+    <div class="profile-username">{{ profile_user['username'] }}</div>
+    <span class="role-chip {{ profile_user['role'] }}">{{ profile_user['role'] }}</span>
+
+    <dl class="profile-dl">
+      <dt>User ID</dt>
+      <dd>#{{ profile_user['id'] }}</dd>
+      <dt>Email</dt>
+      <dd>{{ profile_user['email'] }}</dd>
+      <dt>Role</dt>
+      <dd>{{ profile_user['role'] | capitalize }}</dd>
+    </dl>
+
+    <div style="margin-top:1.25rem;">
+      <a href="{{ url_for('change_email') }}" class="btn btn-ghost btn-sm btn-full" id="btn-edit-profile">
+        Edit Settings
+      </a>
+    </div>
+  </div>
+
+  <!-- Right: enrollments + admin panel -->
+  <div>
+    <div class="card">
+      <div class="card-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        Enrolled Courses
+      </div>
+      {% if enrollments %}
+      <div class="enrolled-list">
+        {% for e in enrollments %}
+        <div class="enrolled-item">
+          <span class="course-code-badge-sm">{{ e['code'] }}</span>
+          <div class="enrolled-item-info">
+            <span class="enrolled-title">{{ e['title'] }}</span>
+            <span class="enrolled-instr">{{ e['instructor'] }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted" style="font-size:.9rem;">No course enrollments on record.</p>
+      {% endif %}
+    </div>
+
+    {% if current_user['role'] == 'admin' %}
+    <div class="card mt-2">
+      <div class="card-title">Admin — View User Profiles</div>
+      <p class="text-muted" style="font-size:.88rem;margin-bottom:.75rem;">
+        As admin you can view any user's profile by ID.
+        <!-- VULN 2c: /profile/<uid> is injectable — try /profile/0 UNION SELECT ... -->
+      </p>
+      <form method="GET" action="" id="admin-uid-form" style="display:flex;gap:.75rem;align-items:flex-end;">
+        <div class="form-group" style="margin:0;flex:1;">
+          <label for="uid-input">User ID</label>
+          <input type="text" id="uid-input" name="uid" placeholder="e.g. 2">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" id="btn-view-user"
+          onclick="this.form.action='/profile/'+document.getElementById('uid-input').value;return true;">
+          View
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% else %}
+<div class="error-page">
+  <div class="error-code">404</div>
+  <div class="error-msg">User profile not found.</div>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-primary" id="btn-back-home">Back to Dashboard</a>
+</div>
+{% endif %}
+
+{% endblock %}

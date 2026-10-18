@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Administrator Dashboard</h1>
+  <p>Full system overview. Manage users, announcements, and comments.</p>
+</div>
+
+<!-- Stats row -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.total_users }}</div>
+    <div class="stat-label">Total Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.total_courses }}</div>
+    <div class="stat-label">Courses</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.total_comments }}</div>
+    <div class="stat-label">Comments</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.total_ann }}</div>
+    <div class="stat-label">Announcements</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;align-items:start;">
+
+  <!-- Recent users -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      </svg>
+      Recent Users
+      <a href="{{ url_for('admin_users') }}" class="btn btn-ghost btn-sm" style="margin-left:auto;">View All</a>
+    </div>
+    <table class="data-table" id="recent-users-table">
+      <thead>
+        <tr><th>ID</th><th>Username</th><th>Role</th><th>Email</th></tr>
+      </thead>
+      <tbody>
+        {% for u in recent_users %}
+        <tr>
+          <td>{{ u['id'] }}</td>
+          <td><a href="{{ url_for('profile', uid=u['id']) }}">{{ u['username'] }}</a></td>
+          <td><span class="role-chip {{ u['role'] }}">{{ u['role'] }}</span></td>
+          <td>{{ u['email'] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Recent comments -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      Recent Comments
+    </div>
+    {% for c in recent_comments %}
+    <div class="comment-item" style="margin-bottom:.5rem;">
+      <div class="comment-avatar">{{ c['username'][0] }}</div>
+      <div>
+        <div class="comment-meta">
+          <strong>{{ c['username'] }}</strong> &mdash; {{ c['created_at'] }}
+        </div>
+        <!-- VULN 1b: Stored XSS — |safe renders raw HTML -->
+        <div class="comment-body" style="font-size:.85rem;">{{ c['body'] | safe }}</div>
+        <!-- VULN 0c: No CSRF token on this delete form -->
+        <form method="POST" action="{{ url_for('admin_delete_comment', comment_id=c['id']) }}"
+              style="margin-top:.4rem;"
+              id="del-comment-{{ c['id'] }}">
+          <button type="submit" class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;"
+                  id="btn-del-comment-{{ c['id'] }}">
+            Delete
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- Quick admin actions -->
+<div class="card mt-2">
+  <div class="card-title">Admin Actions</div>
+  <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+    <a href="{{ url_for('admin_users') }}"         class="btn btn-primary">Manage Users</a>
+    <a href="{{ url_for('admin_announcements') }}" class="btn btn-ghost">Post / Delete Announcements</a>
+    <a href="{{ url_for('search') }}"              class="btn btn-ghost">Browse Courses</a>
+    <a href="{{ url_for('profile') }}"             class="btn btn-ghost">My Profile</a>
+  </div>
+</div>
+{% endblock %}

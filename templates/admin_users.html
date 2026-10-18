@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Admin — Users{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>User Management</h1>
+  <p>All registered users. Change roles or view individual profiles.</p>
+</div>
+
+{% if request.args.get('promoted') %}
+<div class="alert alert-success" role="alert">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+  User role updated.
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+    Registered Users
+  </div>
+  <table class="data-table" id="users-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Username</th>
+        <th>Role</th>
+        <th>Email</th>
+        <th>Profile</th>
+        <th>Change Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u['id'] }}</td>
+        <td>{{ u['username'] }}</td>
+        <td><span class="role-chip {{ u['role'] }}">{{ u['role'] }}</span></td>
+        <td>{{ u['email'] }}</td>
+        <td><a href="{{ url_for('profile', uid=u['id']) }}" class="btn btn-ghost btn-sm" id="view-user-{{ u['id'] }}">View</a></td>
+        <td>
+          <!-- VULN 0c: No CSRF token — role escalation via cross-origin POST is possible -->
+          <form method="POST" action="{{ url_for('admin_promote') }}"
+                style="display:flex;gap:.4rem;align-items:center;"
+                id="promote-form-{{ u['id'] }}">
+            <input type="hidden" name="uid" value="{{ u['id'] }}">
+            <select name="role" style="width:100px;" id="role-select-{{ u['id'] }}">
+              <option value="student" {% if u['role']=='student' %}selected{% endif %}>student</option>
+              <option value="teacher" {% if u['role']=='teacher' %}selected{% endif %}>teacher</option>
+              <option value="admin"   {% if u['role']=='admin'   %}selected{% endif %}>admin</option>
+            </select>
+            <button type="submit" class="btn btn-accent btn-sm" id="btn-promote-{{ u['id'] }}">Apply</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

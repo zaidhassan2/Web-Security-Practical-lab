@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Teacher Dashboard</h1>
+  <p>Welcome, {{ current_user['username'] }}. Manage your courses, students, and announcements.</p>
+</div>
+
+<div class="teacher-grid">
+
+  <!-- ===== My Courses card ===== -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+      My Courses
+    </div>
+    {% if my_courses %}
+    <table class="data-table" id="teacher-courses-table">
+      <thead>
+        <tr>
+          <th>Code</th><th>Title</th><th>Credits</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in my_courses %}
+        <tr>
+          <td><span class="course-code-badge">{{ c['code'] }}</span></td>
+          <td>{{ c['title'] }}</td>
+          <td>{{ c['credits'] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No courses assigned to you yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- ===== Enrolled Students summary ===== -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      Enrolled Students
+      <a href="{{ url_for('teacher_grades') }}" class="btn btn-sm btn-ghost" style="margin-left:auto;">Manage Grades</a>
+    </div>
+    {% if enrolled_students %}
+    <table class="data-table" id="enrolled-students-table">
+      <thead>
+        <tr><th>Student</th><th>Course</th><th>Grade</th><th>Profile</th></tr>
+      </thead>
+      <tbody>
+        {% for s in enrolled_students %}
+        <tr>
+          <td>{{ s['username'] }}</td>
+          <td><span class="course-code-badge-sm">{{ s['code'] }}</span> {{ s['title'] }}</td>
+          <td><span class="grade-badge">{{ s['grade'] }}</span></td>
+          <td><a href="{{ url_for('profile', uid=s['id']) }}" class="btn btn-ghost btn-sm">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No students enrolled in your courses yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- ===== Recent Announcements ===== -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/>
+      </svg>
+      My Recent Announcements
+      <a href="{{ url_for('teacher_post_announcement') }}" class="btn btn-sm btn-primary" style="margin-left:auto;">+ New</a>
+    </div>
+    {% if recent_announcements %}
+      {% for a in recent_announcements %}
+      <div class="announcement-item">
+        <h4>{{ a['title'] }}</h4>
+        <p>{{ a['body'] }}</p>
+        <span style="font-size:.75rem;color:var(--muted);">{{ a['created_at'] }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+    <p class="text-muted" style="font-size:.88rem;">You haven't posted any announcements yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- ===== Quick actions ===== -->
+  <div class="card">
+    <div class="card-title">Quick Actions</div>
+    <div style="display:flex;flex-direction:column;gap:.75rem;">
+      <a href="{{ url_for('teacher_grades') }}"            class="btn btn-primary">Update Student Grades</a>
+      <a href="{{ url_for('teacher_post_announcement') }}" class="btn btn-ghost">Post Announcement</a>
+      <a href="{{ url_for('search') }}"                    class="btn btn-ghost">Browse All Courses</a>
+      <a href="{{ url_for('profile') }}"                   class="btn btn-ghost">My Profile</a>
+      <a href="{{ url_for('change_email') }}"              class="btn btn-ghost">Account Settings</a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

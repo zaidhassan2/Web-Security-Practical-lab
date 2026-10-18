@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>
+    <!-- welcome-banner is populated by app.js using location.hash (DOM XSS surface) -->
+    <span id="welcome-banner" data-username="{{ current_user['username'] }}">Welcome back, {{ current_user['username'] }}!</span>
+  </h1>
+  <p>Here is what is happening on campus today.</p>
+</div>
+
+{% if error %}
+<div class="alert alert-error" role="alert">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  {{ error }}
+</div>
+{% endif %}
+{% if success %}
+<div class="alert alert-success" role="alert">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+  {{ success }}
+</div>
+{% endif %}
+
+<div class="dashboard-grid">
+
+  <!-- ===== Main feed ===== -->
+  <div>
+    <!-- Announcements -->
+    <div class="section-label">Announcements</div>
+    {% for a in announcements %}
+    <div class="announcement-item">
+      <h4>{{ a['title'] }}</h4>
+      <p>{{ a['body'] }}</p>
+      <span style="font-size:.75rem;color:var(--muted);">Posted by {{ a['author'] }} &mdash; {{ a['created_at'] }}</span>
+    </div>
+    {% endfor %}
+
+    <!-- Comment composer -->
+    <!-- VULN 0c: No CSRF token in this form — cross-origin POST will succeed -->
+    <form class="composer" method="POST" action="{{ url_for('student_dashboard') }}" id="comment-form">
+      <div class="composer-header">Post a comment</div>
+      <textarea
+        name="body"
+        id="comment-body"
+        placeholder="Share a question or note with the class..."
+        maxlength="2000"
+        rows="3"
+        aria-label="Comment text"
+      ></textarea>
+      <div class="composer-footer">
+        <button type="submit" class="btn btn-primary btn-sm" id="btn-post-comment">Post</button>
+      </div>
+    </form>
+
+    <!-- Comment feed -->
+    <div class="section-label">Discussion</div>
+    <div class="comment-list" id="comment-list">
+      {% if comments %}
+        {% for c in comments %}
+        <div class="comment-item">
+          <div class="comment-avatar">{{ c['username'][0] }}</div>
+          <div>
+            <div class="comment-meta">
+              <strong>{{ c['username'] }}</strong> &mdash; {{ c['created_at'] }}
+            </div>
+            <!-- VULN 1b: Stored XSS — |safe renders raw HTML stored in the DB -->
+            <div class="comment-body">{{ c['body'] | safe }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted">No comments yet. Be the first to post.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ===== Sidebar ===== -->
+  <aside>
+    <div class="sidebar-card">
+      <h3>My Courses</h3>
+      {% if my_courses %}
+        {% for c in my_courses %}
+        <div class="sidebar-course">
+          <span class="course-code-badge-sm">{{ c['code'] }}</span>
+          <div>
+            <div class="sidebar-course-title">{{ c['title'] }}</div>
+            <div style="font-size:.75rem;color:var(--muted);">
+              {{ c['instructor'] }} &mdash; Grade: <strong>{{ c['grade'] }}</strong>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted" style="font-size:.85rem;">No enrollments found.</p>
+      {% endif %}
+    </div>
+
+    <div class="sidebar-card">
+      <h3>Upcoming</h3>
+      <div class="sidebar-course">
+        <span class="course-code-badge-sm" style="background:#f59e0b;color:#0f172a;">Soon</span>
+        <span class="sidebar-course-title">CS301 Assignment 3 due Monday 23:59</span>
+      </div>
+      <div class="sidebar-course">
+        <span class="course-code-badge-sm" style="background:#f59e0b;color:#0f172a;">Soon</span>
+        <span class="sidebar-course-title">MATH310 review session Thursday 16:00 Room 214</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>Quick Links</h3>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.25rem;">
+        <a href="{{ url_for('search') }}" class="btn btn-ghost btn-sm">Browse Courses</a>
+        <a href="{{ url_for('profile') }}" class="btn btn-ghost btn-sm">My Profile</a>
+        <a href="{{ url_for('change_email') }}" class="btn btn-ghost btn-sm">Account Settings</a>
+      </div>
+    </div>
+  </aside>
+
+</div>
+{% endblock %}

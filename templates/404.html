@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Page Not Found{% endblock %}
+
+{% block content %}
+<div class="error-page">
+  <div class="error-code">{{ error_code if error_code else 404 }}</div>
+  <div class="error-msg">{{ error_msg if error_msg else "The page you are looking for does not exist." }}</div>
+  <a href="{{ url_for('dashboard') if current_user else url_for('login') }}" class="btn btn-primary" id="btn-back-home">
+    Back to {{ "Dashboard" if current_user else "Login" }}
+  </a>
+</div>
+{% endblock %}
