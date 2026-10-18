@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--
+  CSRF Attack Page — targets SAFE version at http://localhost:5002
+  =================================================================
+  This page is structurally identical to csrf.html but targets the safe app.
+  It is included solely to demonstrate that the same attack FAILS when CSRF
+  protection is in place.
+
+  How to use:
+    1. Log in to the SAFE portal (localhost:5002) as alice in Tab A.
+    2. Serve this file with: python3 -m http.server 8080
+       then visit http://localhost:8080/csrf_safe.html in the same browser.
+    3. The form submits — but the server returns HTTP 403.
+    4. Alice's email is unchanged on :5002.
+
+  Why it fails:
+    - Different localhost ports are cross-origin but same-site, so even
+      SameSite=Strict permits the session cookie in this localhost demo.
+    - The server's verify_csrf() function checks
+      the submitted csrf_token against the value stored in the session.
+      This form has no csrf_token field, so compare_digest("", token) fails
+      and the server aborts with 403.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Free Textbooks — Campus Resource Hub</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f8f8f8; }
+    h1 { color: #1e3a8a; }
+    p  { color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Campus Resource Hub</h1>
+  <p>Loading free textbook links, please wait...</p>
+
+  <!-- Identical attack form, now targeting port 5002 -->
+  <form
+    id="csrf-safe-form"
+    action="http://localhost:5002/change_email"
+    method="POST"
+    style="display:none;"
+  >
+    <input type="hidden" name="email" value="attacker@evil.tld">
+    <!-- csrf_token not included — the safe server will reject this request -->
+  </form>
+
+  <script>
+    window.onload = function () {
+      document.forms[0].submit();
+    };
+  </script>
+</body>
+</html>

